@@ -1,0 +1,203 @@
+﻿<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./css/common.css"> 
+    <link rel="stylesheet" href="./js/layui/css/layui.css"> 
+</head>
+
+<body>
+    <!-- https://github.com/jaxlix/vlc-video -->
+    <!-- vlc播放器 -->
+    <div id="vlc-content" class="content">
+        <embed id="vlcObj" type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" width="100%" height="480" autoplay="autoplay" controls="controls" loop="loop" preload="auto" width="100%"/>
+    </div>
+
+    <!-- h5 video播放器 -->
+    <div id="video-contnt" style="display: none;">
+        <video id="video" src="" controls autoplay="autoplay" controls="controls" loop="loop" preload="auto" width="100%"> 
+            请更新版本或使用其他浏览器，最底IE6且安装vlc控件
+        </video>
+    </div>
+
+    <!-- 控件 -->
+    <div>
+        <button class="layui-btn" onclick="playVideo()">播放</button>
+        <button class="layui-btn" onclick="zanting()">暂停</button>
+        <select id="beisu">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2.0x</option>
+        </select>
+        <button class="layui-btn" onclick="kuaitui()">快退10秒</button>
+        <button class="layui-btn" onclick="kuaijin()">快进10秒</button>
+    </div>
+
+    <script src="./js/jquery-1.8.0.min.js"></script>
+    <script src="./js/layui/layui.js"></script>
+    <script>
+        var layer = '';
+        var useVlc = getBrowserInfo().indexOf('IE') != -1;
+        var VIDEO = document.getElementById("video");
+        var VLC = document.getElementById("vlcObj");
+        var videoUrl = "http://45.11.2.233/api/public/dl/1Q9RNs6r/%5BSakurato.sub%5D%5BHenSuki%5D%5B11%5D%5BBIG5%5D%5B1080P%5D.mp4"; //视频外链地址
+
+        layui.use('layer', function () {
+            layer = layui.layer;
+            
+            (function () {
+                if (useVlc) { // IE浏览器使用vlc
+                    try {
+                        playVideo(videoUrl)
+                    } catch (err) {
+                        $("#vlc-content").hide();
+                        if (getPlatform() == 'win32') {
+                            layer.confirm('当前浏览器暂未安装视频播放插件，点击确定安装', {
+                                btn: ['确定', '取消']
+                            }, function () {
+                                window.open('http://47.96.19.54:8080/vlc/vlc-2.2.4-win32.exe')
+                            });
+                        } else if (platform == 'win64') {
+                            layer.confirm('当前浏览器暂未安装视频播放插件，点击确定安装', {
+                                btn: ['确定', '取消']
+                            }, function () {
+                                window.open('http://47.96.19.54:8080/vlc/vlc-2.2.4-win64.exe')
+                            });
+                        }
+                    }
+                } else { // 其他浏览器使用html5-video
+                    $("#vlc-content").hide();
+                    $("#video-contnt").show();
+                    playVideo(videoUrl);
+                }
+
+                // 绑定倍速
+                $("#beisu").on("change", function () {
+                    var v = $(this).val();
+                    if (useVlc) {
+                        VLC.input.rate = v;
+                    } else {
+                        VIDEO.playbackRate = v;
+                    }
+                });
+            })();
+
+        });
+
+        // 播放
+        function playVideo(url) {
+            if (useVlc) {
+                url ? VLC.playlist.add(url) : "";
+                VLC.playlist.play();
+            } else {
+                url ? VIDEO.src = url : "";
+                VIDEO.networkState != 3 ? VIDEO.play() : "";
+            }
+        }
+
+        // 暂停
+        function zanting() {
+            if (useVlc) {
+                VLC.playlist.pause();
+            } else {
+                VIDEO.pause();
+            }
+        }
+
+        // 快进10秒
+        function kuaijin() {
+            if (useVlc) {
+                VLC.input.time += 10000;
+            } else {
+                VIDEO.currentTime += 10;
+            }
+        }
+
+        // 快退10秒
+        function kuaitui() {
+            if (useVlc) {
+                VLC.input.time -= 10000;
+            } else {
+                VIDEO.currentTime -= 10;
+            }
+        }
+
+        //适用于IE6/7/8/9/10/11浏览器，并且安装有vlc插件，则返回true；  
+        function isInsalledIEVLC() {
+            var vlcObj = null;
+            var vlcInstalled = false;
+            try {
+                vlcObj = new ActiveXObject("VideoLAN.Vlcplugin.2");
+                if (vlcObj != null) {
+                    vlcInstalled = true
+                }
+            } catch (e) {
+                vlcInstalled = false;
+            }
+            return vlcInstalled;
+        }
+
+        // 获取浏览器类型
+        function getBrowserInfo() {
+            var userAgent = navigator.userAgent; //取得浏览器的userAgent字符串 
+            var isOpera = userAgent.indexOf("Opera") > -1; //判断是否Opera浏览器 
+            var isIE = window.ActiveXObject || "ActiveXObject" in window
+            var isEdge = userAgent.indexOf("Edge") > -1; //判断是否IE的Edge浏览器
+            var isFF = userAgent.indexOf("Firefox") > -1; //判断是否Firefox浏览器 
+            var isSafari = userAgent.indexOf("Safari") > -1 && userAgent.indexOf("Chrome") == -1; //判断是否Safari浏览器 
+            var isChrome = userAgent.indexOf("Chrome") > -1 && userAgent.indexOf("Safari") > -1 && !isEdge; //判断Chrome浏览器 
+            if (isIE) {
+                var reIE = new RegExp("MSIE (\\d+\\.\\d+);");
+                reIE.test(userAgent);
+                var fIEVersion = parseFloat(RegExp["$1"]);
+                if (userAgent.indexOf('MSIE 6.0') != -1) {
+                    return "IE6";
+                } else if (fIEVersion == 7) {
+                    return "IE7";
+                } else if (fIEVersion == 8) {
+                    return "IE8";
+                } else if (fIEVersion == 9) {
+                    return "IE9";
+                } else if (fIEVersion == 10) {
+                    return "IE10";
+                } else if (userAgent.toLowerCase().match(/rv:([\d.]+)\) like gecko/)) {
+                    return "IE11";
+                } else {
+                    return "0"
+                } //IE版本过低
+            } //isIE end 
+
+            if (isFF) {
+                return "FF";
+            }
+            if (isOpera) {
+                return "Opera";
+            }
+            if (isSafari) {
+                return "Safari";
+            }
+            if (isChrome) {
+                return "Chrome";
+            }
+            if (isEdge) {
+                return "Edge";
+            }
+        }
+
+        // 获取浏览器32位还是64位，安装对应的vlc
+        function getPlatform() {
+            var agent = navigator.platform.toLowerCase();
+            if (agent.indexOf("win64") >= 0 || agent.indexOf("wow64") >= 0) {
+                return "win64";
+            } else if (agent.indexOf("win32") >= 0 || agent.indexOf("wow32") >= 0) {
+                return "win32";
+            }
+        }
+    </script>
+</body>
+
+</html>
